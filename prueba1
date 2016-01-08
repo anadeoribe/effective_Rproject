@@ -1,0 +1,33 @@
+Jan 06, 2016 7:55:50 PM org.openqa.grid.selenium.GridLauncher main
+INFO: Launching a standalone server
+Setting system property webdriver.firefox.logfile to c:\log\firefox.log
+Setting system property webdriver.server.session.timeout to 0
+19:55:50.500 INFO - Java: Oracle Corporation 25.65-b01
+19:55:50.502 INFO - OS: Windows Server 2012 R2 6.3 x86
+19:55:50.515 INFO - v2.40.0, with Core v2.40.0. Built from revision fbe29a9
+19:55:50.940 INFO - RemoteWebDriver instances should connect to: http://127.0.0.1:4443/wd/hub
+19:55:50.943 INFO - Version Jetty/5.1.x
+19:55:50.962 INFO - Started HttpContext[/selenium-server,/selenium-server]
+19:55:51.047 INFO - Started org.openqa.jetty.jetty.servlet.ServletHandler@d5c04e
+19:55:51.047 INFO - Started HttpContext[/wd,/wd]
+19:55:51.047 INFO - Started HttpContext[/selenium-server/driver,/selenium-server/driver]
+19:55:51.048 INFO - Started HttpContext[/,/]
+19:55:51.054 INFO - Started SocketListener on 0.0.0.0:4443
+19:55:51.054 INFO - Started org.openqa.jetty.jetty.Server@10dae81
+19:55:51.904 INFO - Executing: [new session: Capabilities [{nativeEvents=true, webdriver.remote.quietExceptions=true, browserName=firefox, javascriptEnabled=true}]] at URL: /session)
+19:55:51.930 INFO - Creating a new session for Capabilities [{nativeEvents=true, webdriver.remote.quietExceptions=true, browserName=firefox, javascriptEnabled=true}]
+19:55:55.125 INFO - Done: /session
+19:55:55.246 INFO - Executing: [execute script: return screen.width, []] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/execute)
+19:55:55.259 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/execute
+19:55:55.267 INFO - Executing: [execute script: return screen.height, []] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/execute)
+19:55:55.284 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/execute
+19:55:55.294 INFO - Executing: [set window position] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/position)
+19:55:55.311 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/position
+19:55:55.318 INFO - Executing: [set window size] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/size)
+19:55:55.358 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/size
+19:55:55.367 INFO - Executing: [maximise window] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/maximize)
+19:55:55.408 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window/current/maximize
+19:55:55.425 INFO - Executing: [get window handles] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window_handles)
+19:55:55.435 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/window_handles
+19:55:55.757 INFO - Executing: [get: http://www.ado.com.mx/wadod/esp/mod_izq.jsp] at URL: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/url)
+19:55:56.863 INFO - Done: /session/92ef629b-68d6-40c6-a55b-79e87b4b087e/url
