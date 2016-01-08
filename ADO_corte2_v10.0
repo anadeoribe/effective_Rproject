@@ -1,0 +1,556 @@
+#install.packages("RSelenium")
+#install.packages("stringr")
+
+library(RSelenium)
+library(stringr)
+
+################################################################################
+#Informacion para la fecha de arranque del crowler
+#Las coordenadas (2,4) equivalen al 21 de diciembre de 2015
+
+Dia_arranque<-format(Sys.Date(), format="%d/%m/%Y")
+DiaCalendario<-format(Sys.time(),"%d")
+ArranqueFecha<-c(5,5)
+Dia_Consulta<-Dia_arranque
+FechaConsulta<-ArranqueFecha
+
+############################################################################
+#Datos para la navegacion en SauceLab
+
+
+
+URL<-"http://www.ado.com.mx/wadod/esp/mod_izq.jsp"
+User <- "anadeoribe"
+Pass <- "bbd4dfac-95b0-4a38-a738-7c2ddb080b98"
+Port <- 80
+Ip <- paste0(User, ':', Pass, "@ondemand.saucelabs.com")
+Browser <- "firefox"
+Version <- "26"
+Platform <- "Windows 8.1"
+Navegador<-NULL
+Nombre<-NULL
+Capablities<-NULL
+
+
+################################################################################
+#Funciones Genericas
+
+ubicarenglon2<-function(id_elemento,indice)
+{
+  s1<-paste('x=document.getElementById("',id_elemento,'")',sep='')
+  s2<-paste('x.children[',indice,'].selected="selected"',sep='')    
+  
+  Navegador$executeScript(s1,list())
+  Navegador$executeScript(s2,list())
+  
+  
+} 
+
+
+#FunciÃ³n para seleccionar fecha de consulta, en este caso, al dÃ­a siguiente
+fijarFecha<-function(FechaConsulta, Dia_Consulta)
+{
+  
+  if(Dia_hoy!=Dia_Consulta)
+  {
+    
+    if(DiaCalendario_hoy=="01")
+    {
+      FechaConsulta[2]=1
+      FechaConsulta[1]=FechaConsulta[1]+1
+      
+    }else{
+      
+      if(FechaConsulta[1]==7)
+      {
+        FechaConsulta[1]=1
+        
+      }else{
+        
+        FechaConsulta[1]=FechaConsulta[1]+1
+      }
+      
+      if(FechaConsulta[1]==1)
+      {
+        FechaConsulta[2]= FechaConsulta[2]+1
+        
+      }
+      
+    }  
+    
+    Dia_Consulta=Dia_hoy
+    
+  }
+  
+  
+  Res<-list(Dia_Consulta,FechaConsulta)
+  
+  return(Res)
+  
+}
+
+
+#FunciÃ³n para abrir el navegador
+
+openURL<-function(URL)
+{
+  
+  library(RSelenium)
+  
+  Sys.sleep(10)
+  
+  try(checkForServer(), silent=TRUE)
+  try(startServer(), silent = TRUE)
+  
+  Sys.sleep(10)
+  try(Navegador$open(silent=TRUE), silent= TRUE)
+  try(Navegador$navigate(URL),silent = TRUE)
+  Sys.sleep(2)
+  
+}
+
+################################################################################
+#Coordenadas de las fechas
+
+Fila1<- -10
+Fila2<- 10
+Fila3<- 30
+Fila4<- 50
+Fila5<- 80
+Fila6<- 100
+
+Columna1<--115
+Columna2<- -95
+Columna3<- -55
+Columna4<- -30
+Columna5<- 0
+Columna6<- 30
+Columna7<- 50
+
+Fila<-c(Fila1, Fila2, Fila3, Fila4, Fila5, Fila6)
+Columna<- c(Columna1, Columna2, Columna3, Columna4, Columna5,
+            Columna6, Columna7)
+
+
+################################################################################
+
+descargarOrigen<-function()
+{
+  
+  origen <- try(Navegador$findElement("name", "origen"), silent=TRUE)
+  
+  #para descargar la informacion de todos los origenes
+  dato_origen<-try(origen$getElementText(), silent = TRUE)
+  
+  x<-NULL
+  x <- unlist(dato_origen)
+  x <- strsplit(x, "\n")
+  x <- data.frame(origen = unlist(x), stringsAsFactors = F)
+  x <- x[x$origen!= "Origen", , drop=F]
+  rownames(x) <- NULL
+  MatrizOrigen<-x[,1]
+  
+  try(Navegador$close(), silent=TRUE)
+  Sys.sleep(2)
+  try(Navegador$closeServer(), silent = TRUE)
+  
+  return(MatrizOrigen)
+  
+}
+
+
+################################################################################
+
+descargarDestinos<-function()
+{
+  
+  try(Navegador$sendKeysToActiveElement(list(key="up_arrow")), silent = TRUE)
+  try(ubicarenglon2("origen",i), silent = TRUE)
+  validaDestinos<-'validaDestinos()'
+  try(Navegador$executeScript(validaDestinos,list()), silent = TRUE)
+  
+  Sys.sleep(2)
+  destino <- try(Navegador$findElement("name", "destino"), silent=TRUE)
+  dato_destino<-try(destino$getElementText(), silent = TRUE)
+  
+  x<-NULL
+  x <- unlist(dato_destino)
+  x <- strsplit(x, "\n")
+  x <- data.frame(destino = unlist(x), stringsAsFactors = F)
+  x <- x[x$destino!= "Destino", , drop=F]
+  rownames(x) <- NULL
+  MatrizDestino<-x[1]
+  
+  return(MatrizDestino)
+  
+}
+
+################################################################################
+#Descarga Matriz con la informaciÃ³n del Origen y de  los destinos
+
+descargarMatrizDestinos<-function(Destinos)
+{
+  MatrizDestino<-NULL
+  Error<-TRUE
+  Prueba<-NULL
+  
+  Prueba<-try(texto <- Navegador$findElement(value='//*[contains(concat( " ", @class, " " ), concat( " ", "texto", " " ))]'), silent=TRUE)
+  Prueba<-try(texto$clickElement(), silent=TRUE)
+  
+  while(!is.null(Prueba))
+  {
+    
+    openURL(URL)
+    Prueba<-try(texto <- Navegador$findElement(value='//*[contains(concat( " ", @class, " " ), concat( " ", "texto", " " ))]'), silent=TRUE)
+    Prueba<-try(texto$clickElement(), silent=TRUE)
+    
+  }
+  
+  Prueba<-try(MatrizDestino<-descargarDestinos(),silent=TRUE)
+  Error<-substr(toString(Prueba),1,5)=="Error"
+  
+  if(Error==TRUE)
+  {
+    Prueba<-try(MatrizDestino<-descargarDestinos(),silent=TRUE)
+    Error<-substr(toString(Prueba),1,5)=="Error"
+  }
+  
+  if(Error!=TRUE)
+  {
+    MatrizDestino<-cbind(MatrizOrigen[i],MatrizDestino)
+    colnames(MatrizDestino)<-c("Origen","Destino")
+    print((paste("i:",i)))
+    
+  }else{
+    
+    MatrizDestino<-cbind(MatrizOrigen[i],"Sin Destinos")
+    colnames(MatrizDestino)<-c("Origen","Destino")
+    print((paste("i:",i)))
+    
+  }
+  
+  Destinos<-rbind(Destinos,MatrizDestino)
+  
+  
+  return(Destinos)
+  
+}
+
+################################################################################
+
+etapa2<-function()
+{
+  Resultado<-NULL
+  tabladat<-NULL
+  Navegador=NULL
+  
+  #Datos especificos para ejecutar en SauceLab
+  ExtraCapabilities <- list(name = Nombre, username = User, accessKey = Pass)
+  Navegador <- try(remoteDriver$new(remoteServerAddr = Ip, port = Port, browserName = Browser
+                                    , version = Version, platform = Platform
+                                    , extraCapabilities = ExtraCapabilities), silent=TRUE)
+  
+  
+  library(RSelenium)
+  
+  Sys.sleep(10)
+  
+  try(checkForServer(), silent=TRUE)
+  try(startServer(), silent = TRUE)
+  
+  Sys.sleep(10)
+  try(Navegador$open(silent=TRUE), silent= TRUE)
+  try(Navegador$navigate(URL),silent = TRUE)
+  Sys.sleep(2)
+  
+  Prueba<-NULL
+  #Verificar que URL estÃ¡ funcionando
+  Prueba<-try(texto <- Navegador$findElement(value='//*[contains(concat( " ", @class, " " ), concat( " ", "texto", " " ))]'), silent=TRUE)
+  Prueba<-try(texto$clickElement(), silent=TRUE)
+  
+  while(!is.null(Prueba))
+  {
+    
+    library(RSelenium)
+    
+    Sys.sleep(10)
+    
+    try(checkForServer(), silent=TRUE)
+    try(startServer(), silent = TRUE)
+    
+    Sys.sleep(10)
+    try(Navegador$open(silent=TRUE), silent= TRUE)
+    try(Navegador$navigate(URL),silent = TRUE)
+    Sys.sleep(2)
+    
+    
+    Prueba<-try(texto <- Navegador$findElement(value='//*[contains(concat( " ", @class, " " ), concat( " ", "texto", " " ))]'), silent=TRUE)
+    Prueba<-try(texto$clickElement(), silent=TRUE)
+    
+  }
+  
+  try(Navegador$sendKeysToActiveElement(list(key="up_arrow")), silent=TRUE)
+  
+  #eleccion de un destino diferente al origen.
+  s1<-paste('x=document.getElementById("',"origen",'")',sep='')
+  s2<-paste('x.children[',i,'].selected="selected"',sep='')    
+  
+  try(Navegador$executeScript(s1,list()), silent=TRUE)
+  try(Navegador$executeScript(s2,list()), silent=TRUE)
+  validaDestinos<-'validaDestinos()'
+  try(Navegador$executeScript(validaDestinos,list()), silent=TRUE)
+  Sys.sleep(1)
+  
+  s1<-paste('x=document.getElementById("',"destino",'")',sep='')
+  s2<-paste('x.children[',h,'].selected="selected"',sep='')    
+  
+  try(Navegador$executeScript(s1,list()), silent=TRUE)
+  try(Navegador$executeScript(s2,list()), silent=TRUE)
+  Sys.sleep(1)
+  
+  #Moficiar la fecha de la consulta
+  fecha<-try(Navegador$findElement(using = 'id', "fecha"), silent=TRUE)
+  script_visible<-'document.getElementById("fecha").style.display="block";'
+  try(Navegador$executeScript(script_visible,list(fecha)), silent=TRUE)
+  
+  #dia(2,4)
+  
+  Error=TRUE
+  while(Error==TRUE)
+  {
+    p<-try(fecha$clickElement(), silent=TRUE)
+    Error=(substr(toString(p),1,5)=="Error")
+  }
+  
+  try(fecha$mouseMoveToLocation(Columna[Datos_fecha[[2]][1]]
+                                ,Fila[Datos_fecha[[2]][2]]), silent=TRUE)
+  
+  try(Navegador$click(1), silent=TRUE)
+  sencillo <- try(Navegador$findElement(value = '//*[(@id = "redondo1")]'), silent=TRUE)
+  
+  Error=TRUE
+  while(Error==TRUE)
+  {
+    p<-try(sencillo$clickElement(), silent=TRUE)
+    Error=(substr(toString(p),1,5)=="Error")
+  }
+  
+  consultar<-try(Navegador$findElement(using = 'css selector', "input.btn_consultar"), silent=TRUE)
+  
+  
+  
+  Error=TRUE
+  while(Error==TRUE)
+  {
+    p<-try(consultar$clickElement(), silent=TRUE)
+    Error=(substr(toString(p),1,5)=="Error")
+  }
+  
+  
+  ScreenShot<-try(Navegador$screenshot(), silent=TRUE)
+  saveRDS(ScreenShot, Nombre, ascii=TRUE)
+  
+  #descaga de informaciÃÂ³n
+  tableID<-'//*[contains(concat( " ", @class, " " ), concat( " ", "corrida", " " ))] | //td'
+  webElem<-try(Navegador$findElement(value = tableID), silent=TRUE)
+  doc<-htmlParse(try(Navegador$getPageSource()[[1]], silent=TRUE))
+  tabladat<-readHTMLTable(doc)[[2]]
+  
+  try(Navegador$close(), silent=TRUE)
+  Sys.sleep(1)
+  try(Navegador$closeServer(),silent=TRUE)
+  
+  
+  tabladat<-tabladat[-1,-1]
+  
+  if(length(tabladat)>1)
+  {
+    tabladat<-cbind(tabladat,date(),Nombre,MatrizOrigen[i],MatrizDestino[h,2])
+    colnames(tabladat)<-c("Hora_salida","Terminal_Origen","Terminal_Destino",
+                          "Precio","Precio_anticipado","Promociones",
+                          "Tiempo_recorrido","Marca", "Tipo",
+                          "Fecha de consulta", "Nombre de respaldo",
+                          "Origen","Destino")
+  }
+  
+  
+  
+  #Almacenamiento en tabla general
+  TablaADO<-rbind(TablaADO,tabladat)
+  
+  
+  
+  
+  
+  Res<-list(TablaADO, length(tabladat))
+  
+  
+  return(Res)
+  
+}
+
+
+
+
+############################################################################################################
+#
+#
+# Comienzan vueltas itinerantes, verificando para cada vuleta, una nueva matriz de destinos.
+#
+############################################################################################################
+
+
+
+Vuelta=25
+j=6
+
+
+while(j<=Vuelta)
+{
+  
+  ################################################################################
+  #Descargar Matriz de Origenes
+  MatrizOrigen<-NULL
+  Nombre<-"Origen_ADO"
+  ExtraCapabilities <- list(name = Nombre, username = User, accessKey = Pass)
+  Navegador <- try(remoteDriver$new(remoteServerAddr = Ip, port = Port, browserName = Browser
+                                    , version = Version, platform = Platform
+                                    , extraCapabilities = ExtraCapabilities), silent=TRUE)
+  
+  
+  try(openURL(URL), silent=TRUE)
+  
+  MatrizOrigen<-try(descargarOrigen(),silent=TRUE)
+  
+  
+  ################################################################################
+  #Inicializar Variables
+  
+  MatrizDestino<-NULL
+  ScreenShot<-NULL
+  Faltantes<-NULL
+  Destinos<-matrix(1:2,1)
+  colnames(Destinos)<-c("Origen","Destino")
+  
+  #Descargar destinos para cada ruta
+  Nombre<-"RutasADO"
+  ExtraCapabilities <- list(name = Nombre, username = User, accessKey = Pass)
+  Navegador <- remoteDriver$new(remoteServerAddr = Ip, port = Port, browserName = Browser
+                                , version = Version, platform = Platform
+                                , extraCapabilities = ExtraCapabilities)
+  
+  #Navegador<-remoteDriver$new() //Para probar en el navegador de la computadora
+  try(openURL(URL),silent=TRUE)
+  
+  i=1
+  for(i in 1:length(MatrizOrigen))
+  { 
+    Destinos<-try(descargarMatrizDestinos(Destinos), silent=TRUE)
+  }
+  
+  
+  try(Navegador$close(), silent=TRUE)
+  Sys.sleep(2)
+  try(Navegador$closeServer(), silent=TRUE)
+  
+  MatrizDestino<-Destinos[-1,]
+  MatrizDestinoFinal<-MatrizDestino
+  
+  Faltantes<-MatrizDestino[which(MatrizDestino[,2]=="Sin Destinos"),1]
+  
+  if(length(Faltantes)!=0)
+  {
+    MatrizDestinoFinal<-NULL
+    try(openURL(URL), silent=TRUE)
+    Destinos<-NULL
+    
+    for(t in 1:length(Faltantes))
+    {
+      
+      i=which(MatrizOrigen==Faltantes[t])
+      Destinos<-try(descargarMatrizDestinos(Destinos), silent=TRUE)
+      
+    }
+    
+    try(Destinos<-Destinos[which(Destinos[,2]!="Sin Destinos")],silent=TRUE)
+    try(Completos<-MatrizDestino[which(MatrizDestino[,2]!="Sin Destinos"),], silent=TRUE)
+    try(MatrizDestinoFinal<-rbind(Completos,DestinosRec), silent=TRUE)
+    
+    try(Navegador$close(), silent=TRUE)
+    Sys.sleep(2)
+    try(Navegador$closeServer(), silent=TRUE)
+    
+  }
+  
+  write.csv(MatrizDestinoFinal, paste("MatrizDestinoADO", "Vuelta_",j, ".csv"))
+  
+  ###############################################################################
+  
+  TablaADO<-matrix(1:13,1)
+  colnames(TablaADO)<-c("Hora_salida","Terminal_Origen","Terminal_Destino",
+                        "Precio","Precio_anticipado","Promociones",
+                        "Tiempo_recorrido","Marca", "Tipo",
+                        "Fecha de consulta", "Nombre de respaldo",
+                        "Origen","Destino")
+  
+  
+  i=86
+  for(i in 86:162)
+  {
+    
+    MatrizDestino<-MatrizDestinoFinal[which(MatrizDestinoFinal[,1]==MatrizOrigen[i]),] 
+    h=1
+    
+    
+    for(h in 1:length(MatrizDestino[,1]))
+    { 
+      
+      
+      Resultado<-NULL
+      Aprobar=0
+      Repetir=1
+      Nombre<-str_replace_all(paste(str_trim(h),"_",str_trim(i),"_",j,"C2_v10.rds")," ","")
+      
+      Dia_hoy<-format(Sys.Date(), format="%d/%m/%Y")
+      DiaCalendario_hoy<-format(Sys.time(),"%d")
+      Datos_fecha<-fijarFecha(FechaConsulta,Dia_Consulta)
+      Dia_Consulta<-Datos_fecha[[1]]
+      FechaConsulta<-Datos_fecha[[2]]
+      DiaCalendario=DiaCalendario_hoy
+      
+      try(Resultado<-etapa2(), silent=TRUE)
+      Aprobar<-Resultado[[2]]
+      
+      if(toString(Aprobar)==1)
+      {
+        Repetir=Repetir+1 
+        file.remove(Nombre)
+        Resultado=NULL
+        
+      }
+      
+      if(!is.null(Resultado[[1]]))
+      {
+        TablaADO<-Resultado[[1]]
+      }
+      
+      
+      print(paste("h:",h))
+      
+      NombreTabla=str_replace_all(paste("Tabla","ADO2","Vuelta", j, "v10.0.cvs")," ","")
+      write.csv(TablaADO, NombreTabla)
+    
+    }
+    
+    
+    NombreTabla=str_replace_all(paste("Tabla","ADO2","Vuelta", j, "v10.0.cvs")," ","")
+    write.csv(TablaADO, NombreTabla)
+    print(paste("i:",i))
+    
+  }
+  
+  print(paste("Vuelta:",j))
+  j=j+1
+  
+}
+
