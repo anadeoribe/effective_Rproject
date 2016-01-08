@@ -1,0 +1,223 @@
+#install.packages("RSelenium")
+#install.packages("stringr")
+
+library(RSelenium)
+library(stringr)
+
+############################################################################
+#Datos para la navegación en SauceLab
+
+URL<-"http://www.estrellablanca.com.mx/"
+User <- "ErinaBlanca"
+Pass <- "a8cb47c8-6206-4b9f-a643-43ed7222685c"
+Port <- 80
+Ip <- paste0(User, ':', Pass, "@ondemand.saucelabs.com")
+Browser <- "firefox"
+Version <- "26"
+Platform <- "Windows 8.1"
+Navegador<-NULL
+
+
+########################################################
+MatrizEB<-read.csv("RutasEB_tot.csv",sep=",")
+TablaEB<-matrix(1:12,1)
+colnames(TablaEB)<-c("Horario","Llegada",
+                  "Subtotal","IVA","Precio","Promociones",
+                  "Línea","Servicio","Fecha de consulta",
+                  "Nombre de respaldo","Origen","Destino")
+
+
+########################################################
+# Extrae la información de rutas contenida en la tabla 
+
+
+extraeTabla<-function()
+{
+  nombre_de_la_tabla= gsub('(<img src=\\"/_img/_utils/_empresas/_([^\\.]+).png)[^/]+/>','\\2',Navegador$getPageSource())
+  doc<-try(htmlParse(nombre_de_la_tabla[[1]]), silent=TRUE)
+  tabladat<-readHTMLTable(doc)[[6]]
+  
+  x <- data.frame(tabladat, stringsAsFactors = F)
+  x<-x[which(x[2]!=""),]
+  x<-x[which(!is.na(x[2])),]
+  x<-x[-1,-1]
+  x<-x[-1,1:8]
+  x<-x[1:(length(x[,1])-2),]
+  Ruta<-cbind(x,date(),Nombre,Origen,Destino)
+  colnames(Ruta)<-c("Horario","Llegada",
+                    "Subtotal","IVA","Precio","Promociones",
+                    "Línea","Servicio","Fecha de consulta",
+                    "Nombre de respaldo","Origen","Destino")
+  return(Ruta)
+  
+}
+
+
+#######################################################
+#Cambiar páginas de las tablas con información de las rutas
+
+cambiarPag<-function()
+{
+  i1<-'id_unico=$(".z-page").attr("id");'
+  i2<-'id_unico="#"+id_unico.substring(0,4);'
+  i3<-'$(id_unico+"09-pgit > div:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(8) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > em:nth-child(1) > button:nth-child(1)").trigger("click");'
+  try(Navegador$executeScript(i1), silent=TRUE)
+  try(Navegador$executeScript(i2), silent=TRUE)
+  try(Navegador$executeScript(i3), silent=TRUE)
+  
+  Sys.sleep(1)
+}
+
+########################################################
+#cambiarFecha
+
+Fecha=10
+
+diaConsulta<-format(Sys.time(),"%d/%m/%y")
+
+cambiarFecha<-function()
+{
+  diaCalendario_hoy<-format(Sys.time(),"%d/%m/%y")
+  
+  if(diaConsulta<diaCalendario_hoy)
+  {
+    Fecha=Fecha+1
+    diaConsulta<-diaCalendario_hoy
+  }
+  
+  return(Fecha)
+}
+
+
+
+d<-NULL
+d[1]<-'$("#_z_0-w3 > td:nth-child(2)").trigger("click");'  # 21-diciembre */
+d[2]<-'$("#_z_0-w3 > td:nth-child(3)").trigger("click");' # 22-diciembre */
+d[3]<-'$("#_z_0-w3 > td:nth-child(4)").trigger("click");'  # 23-diciembre */
+d[4]<-'$("#_z_0-w3 > td:nth-child(5)").trigger("click");'  # 24-diciembre */
+d[5]<-'$("#_z_0-w3 > td:nth-child(6)").trigger("click");'  # 25-diciembre */
+d[6]<-'$("#_z_0-w3 > td:nth-child(7)").trigger("click");'  # 26-diciembre */
+d[7]<-'$("#_z_0-w4 > td:nth-child(1)").trigger("click");'  # 27-diciembre */
+d[8]<-'$("#_z_0-w4 > td:nth-child(2)").trigger("click");'  # 28-diciembre */
+d[9]<-'$("#_z_0-w4 > td:nth-child(3)").trigger("click");'  # 29-diciembre */
+d[10]<-'$("#_z_0-w4 > td:nth-child(4)").trigger("click");'  # 30-diciembre */
+d[11]<-'$("#_z_0-w4 > td:nth-child(5)").trigger("click");'  # 31-diciembre */
+d[12]<-'$("#_z_0-w4 > td:nth-child(6)").trigger("click");'  # 01-enero */
+d[13]<-'$("#_z_0-w0 > td:nth-child(7)").trigger("click");'  # 02-enero */
+d[14]<-'$("#_z_0-w1 > td:nth-child(1)").trigger("click");'   # 03-enero */
+d[15]<-'$("#_z_0-w1 > td:nth-child(2)").trigger("click");'  # 04-enero *'/
+
+###########################################################
+
+Vuelta=10
+j=10
+
+while(j<= Vuelta)
+{
+
+  i=1
+
+for(i in 1:2107)
+{
+  diaCalendario_hoy<-format(Sys.time(),"%d/%m/%y")
+  Fecha<-cambiarFecha()
+  diaConsulta<-diaCalendario_hoy
+  
+  
+  #Navegador<-remoteDriver$new()
+  Nombre<-str_replace_all(paste(str_trim(i),"_EB",j,"C1_v10.rds")," ","")
+  ExtraCapabilities <- list(name = Nombre, username = User, accessKey = Pass)
+  Navegador <- remoteDriver$new(remoteServerAddr = Ip, port = Port, browserName = Browser
+            , version = Version, platform = Platform
+            , extraCapabilities = ExtraCapabilities)
+  
+  
+  
+  library(RSelenium)
+  
+  Sys.sleep(2)
+  
+  try(checkForServer(), silent=TRUE)
+  try(startServer(), silent = TRUE)
+  
+  Sys.sleep(5)
+  try(Navegador$open(silent=TRUE), silent= TRUE)
+  try(Navegador$navigate(URL),silent = TRUE)
+  Sys.sleep(2)
+  
+  
+  
+  
+  Origen<-toString(MatrizEB[i,1])
+  Destino<-toString(MatrizEB[i,2])
+  
+  s1<-paste('jQuery.post("https://www.estrellablanca.com.mx/destinos",{origen:"',Origen,'"});')
+  s2<-paste('jQuery.post("https://www.estrellablanca.com.mx/destinos",{destino:"',Destino,'"});')
+  s3<-'uuid_0=$(".z-datebox-inp.z-datebox-right-edge.z-datebox-readonly").attr("id");'
+  s4<-'uuid_0="#"+uuid_0.substring(0,uuid_0.length-7);'
+  s5<-'$(uuid_0+"r1").trigger("click");'
+  s6<-d[Fecha]
+  s7<-'$(uuid_0+"o6").trigger("click");'
+  
+  try(Navegador$executeScript(s1), silent=TRUE)
+  try(Navegador$executeScript(s2), silent=TRUE)
+  try(Navegador$executeScript(s3), silent=TRUE)
+  try(Navegador$executeScript(s4), silent=TRUE)
+  try(Navegador$executeScript(s5), silent=TRUE)
+  try(Navegador$executeScript(s6), silent=TRUE)
+  try(Navegador$executeScript(s7), silent=TRUE)
+  
+  Sys.sleep(10)
+  
+  Ruta<-NULL
+  Ruta2<-NULL
+  
+  try(Ruta<-extraeTabla(),silent=TRUE)
+  try(TablaEB<-rbind(TablaEB,Ruta),silent=TRUE)
+  Sys.sleep(4)
+  
+  try(ScreenShot.i<-Navegador$screenshot(), silent=TRUE)
+  saveRDS(ScreenShot.i, Nombre, ascii=TRUE)
+  
+  try(cambiarPag(),silent=TRUE)
+  Resultado<-NULL
+  try(Ruta2<-extraeTabla(),silent=TRUE)
+  cara=2
+  
+  try(while(as.matrix(Ruta2[1,1])!=as.matrix(Ruta[1,1]) || 
+        as.matrix(Ruta2[2,2])!=as.matrix(Ruta[2,2]) ||
+        as.matrix(Ruta2[3,3])!=as.matrix(Ruta[3,3]))
+  {
+    
+    try(ScreenShot.i<-Navegador$screenshot(), silent=TRUE)
+    saveRDS(ScreenShot.i, paste(Nombre, "_",cara), ascii=TRUE)
+    
+    try(TablaEB<-rbind(TablaEB,Ruta2),silent=TRUE)
+    try(cambiarPag(),silent=TRUE)
+    Ruta<-Ruta2
+    try(Ruta2<-extraeTabla(),silent=TRUE)
+    
+    cara= cara+1
+    
+  }, silent=TRUE)
+  
+  try(Navegador$close(), silent=TRUE)
+  Sys.sleep(2)
+  try(Navegador$closeServer(), silent=TRUE)
+  
+  print(paste("i:",i))
+  NombreTabla=str_replace_all(paste("Tabla","EB1","_",j,"v10.csv")," ","")
+  write.csv(TablaEB, NombreTabla)
+  
+
+}
+  j=j+1
+  NombreTabla=str_replace_all(paste("Tabla","EB1","_",j,".csv")," ","")
+  write.csv(TablaEB, NombreTabla)
+  print(paste("Vuelta:",j))
+  
+}
+
+########################################################################
+
+
