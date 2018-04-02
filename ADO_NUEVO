@@ -1,0 +1,71 @@
+library(stringr)
+library(RSelenium)
+library(dplyr)
+library(Rcurl)
+library(XML)
+library(seleniumPipes)
+library(rvest)
+library(data.table)
+
+############ IMPORTANTE###################################################
+
+# Este proyecto únicamente tiene fines educativos. Por favor, 
+# absténganse de usuarlo para fines distintos a los establecidos.
+
+# El presente proyecto es una propuesta de crawling de información
+# desde Facebook. Favor de verificar información input relevante.
+
+
+
+##########################################################################
+
+# Iniciar servidor
+rd <-rsDriver(verbose =TRUE, browser = 'phantomjs', version="3.3.1",port = 4568L)
+remDr <- rd[["client"]]
+
+#Navegar al grupo de Programacion en R
+remDr$navigate("http://www.ado.com.mx/wadod/esp/mod_izq.jsp")
+remDr$screenshot(display=TRUE)
+#para saber cuantos miembros son
+
+
+
+#busquemos todos los links que son visibles
+links <-remDr$findElements(using = 'css selector', "a")
+long<<-1:length(links)
+
+
+#Encontramos el objeto origen y descargamos el combo
+origen <- try(remDr$findElement("class", "origin"), silent=TRUE)    
+origen$clickElement()
+remDr$screenshot(display = TRUE, useViewer = TRUE)
+remDr$sendKeysToActiveElement(list(key="down_arrow"))
+dato_origen<-try(origen$getElementText(), silent = TRUE)
+
+
+#Almacenamos el combo
+x<-NULL
+x <- unlist(dato_origen)
+x <- strsplit(x, "\n")
+x <- data.frame(origen = unlist(x), stringsAsFactors = F)
+x <- x[x$origen!= "Origen", , drop=F]
+rownames(x) <- NULL
+MatrizOrigen<-x[,1]
+
+
+#Introducimos un origen
+origen2 <- try(remDr$findElements("id", "selector-origen"), silent=TRUE)
+origen2[[1]]$clickElement()
+java<-"document.getElementById('selector-origen').value = 'Acapulco Costera, Gro.';"
+origen2[[2]]$executeScript(java)
+
+
+
+#Encontramos el objeto destino y descargamos el combo
+destino <- try(remDr$findElement("class", "destination"), silent=TRUE)    
+destino$clickElement()
+destino$getElementText()
+destino2 <- try(remDr$findElements("id", "selector-destino"), silent=TRUE)
+java<-"document.getElementById('selector-destino').value = 'Acapulco, Gro.';"
+origen2[[1]]$executeScript(java)
+
