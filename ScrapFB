@@ -1,0 +1,86 @@
+library(stringr)
+library(RSelenium)
+library(dplyr)
+library(Rcurl)
+library(XML)
+library(seleniumPipes)
+library(rvest)
+library(data.table)
+
+############ IMPORTANTE###################################################
+
+# Este proyecto únicamente tiene fines educativos. Por favor, 
+# absténganse de usuarlo para fines distintos a los establecidos.
+
+# El presente proyecto es una propuesta de crawling de información
+# desde Facebook. Favor de verificar información input relevante.
+
+############ Información input relevante ##################################
+
+# Para poder ejecutar esta sintaxis, es necesario proporcionar usuario y contraseña:
+# Favor de ingresarlo en las siguientes variables:
+usuario='xxxx'
+password='xxx'
+
+############################################################################
+
+
+Sexo<-NULL
+Sexo$hombre=0
+Sexo$mujer=0
+
+# Iniciar servidor
+rd <-rsDriver(verbose =TRUE, browser = 'phantomjs', version="3.3.1",port = 4568L)
+remDr <- rd[["client"]]
+
+
+
+#Ingresar a Facebook, para esto se necesitan los datos de usuario y contraseÃ±a.
+
+remDr$navigate("https://www.facebook.com/")
+remDr$screenshot(display = TRUE, useViewer = TRUE)
+#Sys.sleep(3)
+webElems <- remDr$findElement("name","email")
+
+nombre<-webElems
+nombre$clickElement()
+nombre$sendKeysToElement(list(usuario))
+remDr$screenshot(display = TRUE, useViewer = TRUE)
+
+webElems <- remDr$findElement("name","pass")
+a<-webElems
+a$clickElement()
+a$sendKeysToElement(list(password))
+remDr$screenshot(display = TRUE, useViewer = TRUE)
+
+webElems <- remDr$findElement("name","login")
+a<-webElems
+a$clickElement()
+
+#Sys.sleep(5)
+remDr$screenshot(display=TRUE)
+##########################################################################
+
+
+#Navegar al grupo de Programacion en R
+remDr$navigate("https://www.facebook.com/groups/1906504086251604/members/")
+remDr$screenshot(display=TRUE)
+#para saber cuantos miembros son
+
+
+
+webElems <- remDr$findElement("partial link text","Arturo")
+
+#busquemos todos los links que son visibles
+links <-remDr$findElements(using = 'css selector', "a")
+long<<-1:length(links)
+
+total<-lapply(long,function(x)
+  {
+  
+  nombre<-links[[x]]$getElementText()
+  return(nombre)
+  })
+
+AmigosGrupo<-unique(data.frame(do.call(rbind,total)))
+
