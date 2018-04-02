@@ -1,0 +1,509 @@
+library(RSelenium) # start a server with utility function
+library(XML)
+library(stringr)
+library(methods)
+library(xml2)
+library(data.table)
+
+
+#Recuerda introducir un usuario y password valido
+#Este script necesita introduccir codigo captcha de manera manual
+
+pass<- xxxxx
+user<- xxxxx
+
+
+
+setwd("C:/Users/Yolanda_Villavicenci/Downloads")
+raiz_app<-"Y:/BIG_Guatemala/CONSULTING/Yolanda/Datos/listos/Ver/fact/"
+a<-"C:/Users/Yolanda_Villavicenci/Downloads/"
+
+
+
+
+#ejecutar en caso de falla por actualización en phantomjs
+#binman::rm_platform("phantomjs")
+#wdman::selenium(retcommand = TRUE)
+options( warn = -1 )
+#inicializa el servidor de Selenium
+rD <- rsDriver(port=2389L,browser=c("chrome"), phantomver="2.1.1", version="3.5.3")
+remDr <- rD[["client"]]
+
+#navega en la página requerida
+remDr$navigate("https://portalcfdi.facturaelectronica.sat.gob.mx/")
+remDr$screenshot(display = TRUE)
+
+#Captura RFC
+a<-remDr$findElement(using="id", value="rfc")
+a$sendKeysToElement(list(user))
+
+#Captura password
+a<-remDr$findElement(using="id", value="password")
+a$sendKeysToElement(list(pass))
+remDr$screenshot(display = TRUE)
+
+
+#################################################################################
+
+
+#Es necesario verificar el nuevo código captcha
+a<-remDr$findElements(using="class", value="form-control")
+a[[3]]$sendKeysToElement(list("f227ply"))
+remDr$screenshot(display = TRUE)
+
+#ingresar al sistema
+a<-remDr$findElement(using="id", value="submit")
+a$clickElement()
+remDr$screenshot(display = TRUE)
+Sys.sleep(3)
+remDr$screenshot(display = TRUE)
+
+#path para descargar facturas
+path<-'//*[(@id = "ctl00_MainContent_RdoTipoBusquedaReceptor")]'
+a<-remDr$findElement(using="xpath", value=path)
+a$clickElement()
+gc(rD)
+Sys.sleep(3)
+
+#path para salir del sistema, necesario para evitar banneo
+path1<-'//*[(@id = "anchorClose")]'
+
+#path para consultar facturas recibidas
+path2<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+a<-remDr$findElement(using="xpath", value=path2)
+a$clickElement()
+gc(rD)
+
+#path para consultar facturas por fechas
+pathfecha<-'//*[(@id = "ctl00_MainContent_RdoFechas")]'
+a<-remDr$findElement(using="xpath", value=pathfecha)
+a$clickElement()
+
+#path para consultar year
+path3<-'//*[(@id = "DdlAnio")]'
+a<-remDr$findElement(using="xpath", value=path3)
+a$clickElement()
+remDr$screenshot(display = TRUE)
+a$sendKeysToElement(list("2018"))
+
+#path para consultar mes
+path4<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlMes")]'
+a<-remDr$findElement(using="xpath", value=path4)
+a$clickElement()
+a$sendKeysToElement(list("01"))  
+
+#realizamos una consulta dummy para luego consultar por dia
+pathdia<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlDia")]'
+a<-remDr$findElement(using="xpath", value=pathdia)
+a$clickElement()
+a$sendKeysToElement(list("222"))
+remDr$screenshot(display = TRUE)
+
+
+path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+b<-remDr$findElement(using="xpath", value=path5)
+b$clickElement()
+Sys.sleep(5)
+
+mes<-1:3
+basefac<-lapply(mes, function(y){
+  x=0
+  dias<-10:14
+  #dias<-c(dias,222)
+  
+  basefac<-lapply(dias, function(x){
+    
+    mes<-str_pad(y, width=2,side="left", pad="0")
+    #navega en la página requerida
+    remDr$navigate("https://portalcfdi.facturaelectronica.sat.gob.mx/")
+    remDr$screenshot(display = TRUE)
+    
+    
+    #path para descargar facturas
+    path<-'//*[(@id = "ctl00_MainContent_RdoTipoBusquedaReceptor")]'
+    a<-remDr$findElement(using="xpath", value=path)
+    a$clickElement()
+    gc(rD)
+    Sys.sleep(3)
+    
+    #path para salir del sistema, necesario para evitar banneo
+    path1<-'//*[(@id = "anchorClose")]'
+    
+    #path para consultar facturas recibidas
+    path2<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+    a<-remDr$findElement(using="xpath", value=path2)
+    a$clickElement()
+    gc(rD)
+    
+    #path para consultar facturas por fechas
+    pathfecha<-'//*[(@id = "ctl00_MainContent_RdoFechas")]'
+    a<-remDr$findElement(using="xpath", value=pathfecha)
+    a$clickElement()
+    Sys.sleep(3)
+    
+    #path para consultar mes
+    path4<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlMes")]'
+    a<-remDr$findElement(using="xpath", value=path4)
+    a$clickElement()
+    a$sendKeysToElement(list(mes))
+    
+    dia<-str_pad(x, width=2,side="left", pad="0")
+    pathdia<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlDia")]'
+    a<-remDr$findElement(using="xpath", value=pathdia)
+    a$clickElement()
+    a$sendKeysToElement(list("11"))
+    
+    path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+    b<-remDr$findElement(using="xpath", value=path5)
+    b$clickElement()
+    Sys.sleep(5)
+    remDr$screenshot(display = TRUE)
+    
+    
+    doc<-NULL
+    print("Seleccionar dia de busqueda")
+    Sys.sleep(5)
+    dia<-str_pad(x, width=2,side="left", pad="0")
+  
+    pathdia<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlDia")]'
+    a<-remDr$findElement(using="xpath", value=pathdia)
+    a$clickElement()
+    a$sendKeysToElement(list(dia))
+    
+    
+    print("Ejecutar la consulta")
+    Sys.sleep(3)
+    path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+    b<-remDr$findElement(using="xpath", value=path5)
+    b$clickElement()
+    
+    dia_ver=0
+    i=0
+    
+    Sys.sleep(5)
+    remDr$screenshot(display = TRUE)
+    print("Almacenando tabla")
+    doc <- htmlParse(remDr$getPageSource()[[1]])
+    base<-NULL
+    base<-data.frame(readHTMLTable(doc))
+    remDr$screenshot(display = TRUE)
+    gc(rD, verbose=F)
+    
+ 
+    base<-base[-1,]
+    dia_ver<-unique(substr(as.character(base$ctl00_MainContent_tblResult.V7),9,10))
+    print(dia_ver)
+    print(as.integer(x))
+    Sys.sleep(5)
+    gc(rD, verbose=F)
+    
+    
+    print("Verificando consistencia")
+    
+
+  
+      print("Iniciando verificación de descarga")
+      while(as.integer(dia_ver)!=substr(as.integer(x),1,2) && i<3 )
+      {
+        i=i+1
+        
+        Sys.sleep(5)
+        remDr$screenshot(display = TRUE)
+        print("Almacenando tabla")
+        doc <- htmlParse(remDr$getPageSource()[[1]])
+        base<-NULL
+        base<-data.frame(readHTMLTable(doc),stringsAsFactors = F)
+        base<-base[-1,]
+        #names(base)<-duda
+        remDr$screenshot(display = TRUE)
+        gc(rD, verbose=F)
+        
+        base<-base[-1,]
+        dia_ver<-unique(substr(as.character(base$ctl00_MainContent_tblResult.V7),9,10))
+        print(dia_ver)
+        print(as.integer(x))
+        Sys.sleep(5)
+        gc(rD, verbose=F)
+        
+        if(as.integer(dia_ver)!= substr(as.integer(x),1,2)  )
+        {
+          print("La información no fue descargada exitosamente")
+          #vuelve a reiniciar el combo para la búsqueda de fechas
+          
+          print("... Seleccionar anio")
+          path3<-'//*[(@id = "DdlAnio")]'
+          a<-remDr$findElement(using="xpath", value=path3)
+          a$clickElement()
+          remDr$screenshot(display = TRUE)
+          a$sendKeysToElement(list("2018"))
+          Sys.sleep(3)
+          gc(rD, verbose=F)
+          
+          print("... Seleccionar mes")
+          #path para consultar mes
+          path4<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlMes")]'
+          a<-remDr$findElement(using="xpath", value=path4)
+          a$clickElement()
+          a$sendKeysToElement(list("02"))
+          
+          
+          print("... Seleccionar dia")
+          dia<-str_pad(x, width=2,side="left", pad="0")
+          pathdia<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlDia")]'
+          a<-remDr$findElement(using="xpath", value=pathdia)
+          a$clickElement()
+          a$sendKeysToElement(list("10"))
+          
+          print("... Ejecutar receteo")
+          path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+          b<-remDr$findElement(using="xpath", value=path5)
+          b$clickElement()
+          Sys.sleep(5)
+          gc(rD, verbose=F)
+          
+          print("... Seleccionar anio")
+          path3<-'//*[(@id = "DdlAnio")]'
+          a<-remDr$findElement(using="xpath", value=path3)
+          a$clickElement()
+          remDr$screenshot(display = TRUE)
+          a$sendKeysToElement(list("2018"))
+          remDr$screenshot(display = TRUE)
+          
+          Sys.sleep(3)
+          print("... Seleccionar mes")
+          #path para consultar mes
+          path4<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlMes")]'
+          a<-remDr$findElement(using="xpath", value=path4)
+          a$clickElement()
+          a$sendKeysToElement(list(mes))
+          
+          print("... Seleccionar dia correcto")
+          dia<-str_pad(x, width=2,side="left", pad="0")
+          pathdia<-'//*[(@id = "ctl00_MainContent_CldFecha_DdlDia")]'
+          a<-remDr$findElement(using="xpath", value=pathdia)
+          a$clickElement()
+          a$sendKeysToElement(list(dia))
+          
+          print("Ejecutar nuevamente la consulta...")
+          Sys.sleep(3)
+          path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+          b<-remDr$findElement(using="xpath", value=path5)
+          b$clickElement()
+          Sys.sleep(5)
+          
+          
+        }
+        
+        
+        
+        
+        
+      }
+      
+      consulta<-descarga()
+      base2=data.table(base)
+      base2<-base[base$ctl00_MainContent_tblResult.V13=="",]
+      print(paste0("Se hicieron ", consulta, "consultas."))
+      
+      while(consulta<data.table(base2)[,.N])
+      {
+        print("descarga XML no exitosa")
+        print(paste0("dia de descarga: ",x, " Base: ", data.table(base2)[,.N], " Consultas: ", consulta))
+        descarga()
+        
+      }
+      
+      
+      gc(rD, verbose=F)
+      print(x)
+    
+    return(base)
+    
+    
+  })
+  
+  
+  nombre<-paste0("base",y,".csv")
+  base<- unique(do.call("rbind", basefac))
+  write.csv(base,nombre)
+  
+  return(base)
+  
+})
+
+
+#salida
+a<-remDr$findElement(using="xpath", value=path1)
+a$clickElement()
+
+
+remDr$close()
+# # stop the selenium server
+rD[["server"]]$stop()
+rm(rD)
+
+
+
+
+
+
+descarga<- function(){
+
+result <- tryCatch({
+  suppressMessages({
+    
+      b<-remDr$findElements(using="id", value="ctl00_MainContent_pageNavPosition")
+      b2<-b[[1]]$findChildElement(using="class", value="pagination")
+      
+      webElem <- b[[1]]$findChildElement(using="class", value="pagination")
+      a<- b2$getElementText()
+      paginas<-max(as.numeric(unlist(data.frame(unlist(strsplit(unlist(a),"\n")),stringsAsFactors = F))),na.rm=TRUE)
+     
+      
+  
+       #si es impar
+      num<-paginas/2 
+      brinco_inicia<-as.integer(num)*(-30)-90
+      consulta=0
+      z=0
+      
+      
+      #hacia adelante
+      for(z in 0:(paginas+10))
+      {
+            y=0  
+            
+            print(paste0("Paginas: ",z+1))
+            brinco=30*(z)
+            remDr$mouseMoveToLocation(webElement = b2)
+            #sube1
+            remDr$mouseMoveToLocation(x=brinco_inicia+brinco,y=0)
+            remDr$click()
+            
+            inicia_consulta<-consulta
+            
+            print(paste0("Inicia consulta ", inicia_consulta))
+            k=0
+            
+            for(k in 0:150)
+            {
+              
+              
+                print(k)
+                consulta<-k+inicia_consulta+1
+                path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+                log<-remDr$findElement(using="xpath", value=path5)
+                remDr$mouseMoveToLocation(webElement = log)
+                
+                
+                path5<-'BtnDescarga'
+                b<-remDr$findElements(using="name", value=path5)
+                
+                result <- tryCatch(
+                {  suppressMessages({
+                    remDr$mouseMoveToLocation(webElement = b[[consulta]])
+                    print(paste0("Hace consulta ", consulta))  
+                    b[[consulta]]$clickElement()
+                    temp_existente = data.table(list.files(pattern="download"))
+                    Sys.sleep(1)
+                    
+                    while(temp_existente[,.N]==0)
+                    {
+                        Sys.sleep(1)
+                        print("Esperando descarga...")
+                        temp_existente = data.table(list.files(pattern="download"))
+                      
+                    }
+                    
+                    temp_existente = data.table(list.files(pattern="download"))
+                    file.rename(as.character(temp_existente[1]),paste0(raiz_app,str_replace_all(substr(Sys.time(),6,22),"[: -]", "_"),temp_existente[1]))
+                   
+                    windows <- remDr$getWindowHandles()
+                    remDr$switchToWindow(windows[[2]])
+                    remDr$closeWindow()
+                    remDr$switchToWindow(windows[[1]])
+                })}, error = function(e) { "no hay"}) 
+                
+                if(!is.null(result)){     
+                  consulta<-consulta-1
+                  print(paste0("consulta de regreso", consulta))
+                  Sys.sleep(2)
+                 
+                  break}
+                
+                
+            }
+      
+       
+      }
+      
+          
+  })
+}, 
+error = function(e) {
+  "no hay"
+})
+
+if(!is.null(result))
+{
+path5<-'BtnDescarga'
+b<-remDr$findElements(using="name", value=path5)
+consulta<-0
+inicia_consulta<-0
+
+for(k in 0:length(b)){
+  
+  
+  print(k)
+  consulta<-k+inicia_consulta+1
+  path5<-'//*[(@id = "ctl00_MainContent_BtnBusqueda")]'
+  log<-remDr$findElement(using="xpath", value=path5)
+  remDr$mouseMoveToLocation(webElement = log)
+  
+  path5<-'BtnDescarga'
+  b<-remDr$findElements(using="name", value=path5)
+  
+  
+  b<-remDr$findElements(using="name", value=path5)
+  
+  result <- tryCatch({
+    remDr$mouseMoveToLocation(webElement = b[[consulta]])
+    print(paste0("Hace consulta ", consulta))  
+    b[[consulta]]$clickElement()
+    temp_existente = data.table(list.files(pattern="download"))
+    Sys.sleep(1)
+    
+    while(temp_existente[,.N]==0)
+    {
+      Sys.sleep(1)
+      print("Esperando descarga...")
+      temp_existente = data.table(list.files(pattern="download"))
+      
+    }
+    
+    temp_existente = data.table(list.files(pattern="download"))
+    file.rename(as.character(temp_existente[1]),paste0(raiz_app,temp_existente[1],Sys.time()))
+    
+    windows <- remDr$getWindowHandles()
+    remDr$switchToWindow(windows[[2]])
+    remDr$closeWindow()
+    remDr$switchToWindow(windows[[1]])
+  
+  }, 
+  error = function(e) { "no hay"}) 
+  
+  if(!is.null(result)){     
+    consulta<-consulta-1
+    print(paste0("consulta de regreso", consulta))
+    break}
+  
+}
+
+}
+
+return(consulta)
+
+}
+
+
+descarga()
